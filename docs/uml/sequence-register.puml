@@ -1,0 +1,64 @@
+@startuml
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+autonumber
+
+actor "学生" as Stu
+participant "Web 控制器\n(student.py)" as Web
+participant "RegistrationService" as Svc
+participant "ActivityRepository" as ActRepo
+participant "RegistrationRepository" as RegRepo
+participant "PolicyRegistry" as Reg
+participant "RegistrationPolicy" as Pol
+participant "EventBus" as Bus
+participant "NotificationObserver" as Obs
+participant "MessageRepository" as MsgRepo
+database "SQLite" as DB
+
+Stu -> Web : POST /activities/{id}/register
+Web -> Svc : register(activity_id, student_id)
+
+Svc -> DB : BEGIN IMMEDIATE
+Svc -> ActRepo : get(activity_id)
+ActRepo --> Svc : Activity
+
+alt 活动已开始
+  Svc --> Web : raise RegistrationClosedError
+  Web --> Stu : 提示“活动已经开始”
+else 存在有效报名
+  Svc -> RegRepo : find_active(activity_id, student_id)
+  RegRepo --> Svc : 已存在待审核/已通过
+  Svc --> Web : raise DuplicateRegistrationError
+  Web --> Stu : 提示“不能重复报名”
+else 正常报名
+  Svc -> RegRepo : count_by_status(APPROVED)
+  RegRepo --> Svc : approved_count
+  Svc -> Reg : get(activity.policy_type)
+  Reg --> Svc : RegistrationPolicy
+  Svc -> Pol : decide(RegistrationContext)
+  Pol --> Svc : RegistrationDecision(状态 + 通知文案)
+
+  alt 直接报名且名额已满
+    Svc --> Web : raise CapacityExceededError
+    Web --> Stu : 提示“名额已满”
+  else 通过策略校验
+    Svc -> RegRepo : create(status)
+    RegRepo -> DB : INSERT registrations
+    RegRepo --> Svc : Registration
+    Svc -> DB : COMMIT
+    note right of Svc
+      事务提交后才发布事件，
+      保证通知失败不回滚报名
+    end note
+    Svc -> Bus : publish(RegistrationEvent)
+    Bus -> Obs : handle(event)
+    Obs -> MsgRepo : add(..., dedupe_key)
+    MsgRepo -> DB : INSERT OR IGNORE messages
+    alt 写入失败
+      Obs -> DB : INSERT notification_failures（留痕）
+    end
+    Svc --> Web : Registration
+    Web --> Stu : 提示“报名已提交，当前状态：…”
+  end
+end
+@enduml

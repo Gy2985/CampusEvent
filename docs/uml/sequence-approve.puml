@@ -1,0 +1,51 @@
+@startuml
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+autonumber
+
+actor "管理员" as Adm
+participant "Web 控制器\n(admin.py)" as Web
+participant "RegistrationService" as Svc
+participant "StudentRepository" as StuRepo
+participant "RegistrationRepository" as RegRepo
+participant "ActivityRepository" as ActRepo
+participant "EventBus" as Bus
+participant "NotificationObserver" as Obs
+database "SQLite" as DB
+
+Adm -> Web : POST /admin/registrations/{id}/approve
+Web -> Svc : approve(registration_id, operator_id)
+
+Svc -> DB : BEGIN IMMEDIATE
+Svc -> StuRepo : get(operator_id)
+StuRepo --> Svc : Student
+alt 非管理员
+  Svc --> Web : raise PermissionDeniedError
+  Web --> Adm : 提示“只有管理员可以审批”
+else 是管理员
+  Svc -> RegRepo : get(registration_id)
+  RegRepo --> Svc : Registration
+  alt 状态不是待审核
+    Svc --> Web : raise InvalidStateTransitionError
+    Web --> Adm : 提示“只有待审核报名可以批准”
+  else 状态合法
+    Svc -> ActRepo : get(activity_id)
+    Svc -> RegRepo : count_by_status(APPROVED)
+    RegRepo --> Svc : approved_count
+    alt 名额已满（审批冲突）
+      Svc --> Web : raise CapacityExceededError
+      Web --> Adm : 提示“名额已满，本次批准失败”
+      note right of Svc : 报名仍为待审核，状态不被破坏
+    else 有余位
+      Svc -> RegRepo : update_status(APPROVED)
+      RegRepo -> DB : UPDATE registrations
+      Svc -> DB : COMMIT
+      Svc -> Bus : publish(APPROVED 事件)
+      Bus -> Obs : handle(event)
+      Obs -> DB : INSERT OR IGNORE messages（幂等）
+      Svc --> Web : Registration
+      Web --> Adm : 提示“已批准报名”
+    end
+  end
+end
+@enduml

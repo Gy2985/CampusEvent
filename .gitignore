@@ -1,0 +1,15 @@
+# 虚拟环境与运行产物
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+data/*.db
+data/*.db-journal
+
+# 凭据与个人数据（课程要求不得入库）
+.env
+*.log
+
+# 编辑器
+.vscode/
+.idea/
