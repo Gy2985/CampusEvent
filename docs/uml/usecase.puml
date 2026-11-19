@@ -1,0 +1,42 @@
+@startuml
+left to right direction
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "学生（Student）" as Stu
+actor "管理员（Admin）" as Adm
+
+rectangle "CampusEvent 校园活动报名与管理系统" {
+  usecase "UC-01 浏览活动列表/详情" as UC1
+  usecase "UC-02 按名称筛选活动" as UC2
+  usecase "UC-03 报名活动" as UC3
+  usecase "UC-04 取消报名" as UC4
+  usecase "UC-05 查看我的报名" as UC5
+  usecase "UC-06 查看站内消息" as UC6
+  usecase "UC-07 创建/编辑活动" as UC7
+  usecase "UC-08 删除活动" as UC8
+  usecase "UC-09 审批报名（批准/拒绝）" as UC9
+  usecase "UC-10 查看名额统计" as UC10
+  usecase "直接报名策略" as P1
+  usecase "审核报名策略" as P2
+}
+
+Stu --> UC1
+Stu --> UC2
+Stu --> UC3
+Stu --> UC4
+Stu --> UC5
+Stu --> UC6
+
+Adm --> UC7
+Adm --> UC8
+Adm --> UC9
+Adm --> UC10
+
+UC3 ..> P1 : <<include>> 直接报名
+UC3 ..> P2 : <<include>> 审核报名
+UC9 ..> UC10 : 批准时复查名额
+UC3 <.. UC6 : 报名结果通知
+UC9 <.. UC6 : 审核结果通知
+@enduml
