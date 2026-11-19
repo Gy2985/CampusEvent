@@ -1,0 +1,59 @@
+"""CampusEvent 应用工厂。
+
+分层结构（自外向内）：
+    web（Flask 蓝图 / 页面）
+      └─ services（业务服务：事务边界 + 规则编排）
+           ├─ policies（策略模式：变化的报名规则）
+           ├─ events + observers（观察者模式：报名事件 → 站内通知）
+           └─ repositories（仓储：SQLite 读写）
+    domain（实体与业务异常，不依赖 Flask 与数据库）
+"""
+from __future__ import annotations
+
+import logging
+import os
+
+from flask import Flask
+
+from .db import Database
+from .events.event_bus import EventBus
+from .observers.notification_observer import NotificationObserver
+from .policies.implementations import build_default_registry
+from .services.activity_service import ActivityService
+from .services.registration_service import RegistrationService
+from .web import register_blueprints
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def create_app(config: dict | None = None) -> Flask:
+    app = Flask(__name__)
+    app.config.from_mapping(
+        SECRET_KEY="campus-event-dev-key",
+        DATABASE=os.path.join(BASE_DIR, "data", "campus_event.db"),
+        SEED_DEMO=True,
+        JSON_AS_ASCII=False,
+    )
+    if config:
+        app.config.update(config)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
+    db = Database(app.config["DATABASE"])
+    db.ensure_ready(seed=bool(app.config.get("SEED_DEMO", True)))
+
+    registry = build_default_registry()
+    event_bus = EventBus()
+    event_bus.subscribe(NotificationObserver(db).handle)
+
+    app.extensions["db"] = db
+    app.extensions["policies"] = registry
+    app.extensions["event_bus"] = event_bus
+    app.extensions["registration_service"] = RegistrationService(db, registry, event_bus)
+    app.extensions["activity_service"] = ActivityService(db)
+
+    register_blueprints(app)
+    return app
