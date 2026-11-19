@@ -55,6 +55,8 @@ D:\python\python.exe -m venv .venv          # 虚拟环境落在 D 盘，不占�
 .\.venv\Scripts\python.exe app.py
 ```
 
+也可以直接双击 `start.bat`（会自动切到项目目录并启动）。
+
 浏览器访问 <http://127.0.0.1:5000> 。
 
 ### 2.5 演示账号（固定账号，无密码）
@@ -72,7 +74,13 @@ D:\python\python.exe -m venv .venv          # 虚拟环境落在 D 盘，不占�
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-当前结果：**36 passed**（C1–C10 核心验收用例 + X1–X13 边界用例）。
+也可以双击 `test.bat`。
+
+当前结果：**36 passed**（C1–C10 核心验收用例 + X1–X16 边界用例 + W1–W10 界面用例）。
+
+### 2.7 实验报告
+
+`docs/09-实验二报告.docx`（约 7 页，含类图与两张时序图、测试结果表）。
 
 ---
 
