@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}活动列表 · CampusEvent{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>校园活动列表</h1>
+  <p class="muted">共 {{ activities|length }} 个活动，按开始时间排序。报名结果会写入站内消息。</p>
+</div>
+
+<form class="toolbar" method="get" action="{{ url_for('student.activities') }}">
+  <input type="text" name="q" value="{{ keyword }}" placeholder="按活动名称筛选，例如：讲座">
+  <button type="submit">筛选</button>
+  {% if keyword %}<a class="link" href="{{ url_for('student.activities') }}">清除筛选</a>{% endif %}
+</form>
+
+{% if activities %}
+<div class="card-grid">
+  {% for activity in activities %}
+  <article class="card">
+    <div class="card-top">
+      <span class="tag">{{ activity.category }}</span>
+      <span class="tag {{ 'tag-approval' if activity.policy_type == 'APPROVAL' else 'tag-direct' }}">
+        {{ activity.policy_label }}
+      </span>
+      {% if activity.started %}<span class="tag tag-closed">已开始</span>{% endif %}
+    </div>
+    <h2 class="card-title">{{ activity.title }}</h2>
+    <dl class="meta">
+      <dt>开始时间</dt><dd>{{ activity.start_display }}</dd>
+      <dt>地点</dt><dd>{{ activity.location }}</dd>
+      <dt>名额</dt>
+      <dd>
+        已通过 {{ activity.approved_count }} / {{ activity.capacity }}
+        {% if activity.remaining > 0 %}
+          <span class="badge ok">剩余 {{ activity.remaining }}</span>
+        {% else %}
+          <span class="badge full">已满</span>
+        {% endif %}
+        {% if activity.pending_count %}<span class="badge pending">待审核 {{ activity.pending_count }}</span>{% endif %}
+      </dd>
+    </dl>
+
+    <div class="card-actions">
+      <a class="btn ghost" href="{{ url_for('student.activity_detail', activity_id=activity.activity_id) }}">查看详情</a>
+      {% if activity.my_status %}
+        <span class="badge status-{{ activity.my_status }}">我的状态：{{ activity.my_status_label }}</span>
+      {% elif not activity.started and not current_user.is_admin %}
+      <form method="post" action="{{ url_for('student.register', activity_id=activity.activity_id) }}">
+        <button type="submit" class="btn">报名</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">没有匹配的活动，换个关键词试试。</div>
+{% endif %}
+{% endblock %}

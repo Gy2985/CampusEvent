@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ '新建活动' if mode == 'new' else '编辑活动' }} · CampusEvent{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ '新建活动' if mode == 'new' else '编辑活动' }}</h1>
+  <p class="muted">报名方式决定后续报名流程：直接报名自动通过，审核型报名先进入待审核。</p>
+</div>
+
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+
+<form class="panel form" method="post"
+      action="{{ url_for('admin.activity_new') if mode == 'new' else url_for('admin.activity_edit', activity_id=activity.activity_id) }}">
+  <label>
+    <span>活动名称</span>
+    <input type="text" name="title" maxlength="60" required value="{{ form.get('title', '') }}" placeholder="例如：程序设计竞赛（初赛）">
+  </label>
+  <label>
+    <span>活动类型</span>
+    <input type="text" name="category" maxlength="20" required value="{{ form.get('category', '') }}" placeholder="文艺 / 学术 / 体育 / 讲座">
+  </label>
+  <label>
+    <span>开始时间</span>
+    <input type="datetime-local" name="start_at" required value="{{ form.get('start_at', '') }}">
+  </label>
+  <label>
+    <span>活动地点</span>
+    <input type="text" name="location" maxlength="60" required value="{{ form.get('location', '') }}" placeholder="例如：实验楼 A305">
+  </label>
+  <label>
+    <span>人数上限</span>
+    <input type="number" name="capacity" min="1" step="1" required value="{{ form.get('capacity', '') }}" placeholder="正整数">
+  </label>
+  <label>
+    <span>报名方式</span>
+    <select name="policy_type">
+      <option value="DIRECT" {% if form.get('policy_type') == 'DIRECT' %}selected{% endif %}>直接报名（自动通过）</option>
+      <option value="APPROVAL" {% if form.get('policy_type') == 'APPROVAL' %}selected{% endif %}>管理员审核（先待审核）</option>
+    </select>
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" class="btn">{{ '创建活动' if mode == 'new' else '保存修改' }}</button>
+    <a class="link" href="{{ url_for('admin.activities') }}">返回活动管理</a>
+  </div>
+</form>
+{% endblock %}

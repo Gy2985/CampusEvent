@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}我的报名 · CampusEvent{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>我的报名</h1>
+  <p class="muted">共 {{ rows|length }} 条记录，含已拒绝/已取消的历史记录。</p>
+</div>
+
+{% if rows %}
+<table class="table">
+  <thead>
+    <tr><th>活动</th><th>类型</th><th>开始时间</th><th>地点</th><th>报名状态</th><th>提交时间</th><th>操作</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td><a class="link" href="{{ url_for('student.activity_detail', activity_id=row.activity_id) }}">{{ row.title }}</a></td>
+      <td>{{ row.category }}</td>
+      <td>{{ row.start_display }}</td>
+      <td>{{ row.location }}</td>
+      <td><span class="badge status-{{ row.status }}">{{ row.status_label }}</span></td>
+      <td>{{ row.created_at }}</td>
+      <td>
+        {% if row.can_cancel %}
+        <form method="post" action="{{ url_for('student.cancel', registration_id=row.registration_id) }}">
+          <button type="submit" class="btn small ghost" onclick="return confirm('确定取消该报名吗？取消后统计会同步变化。');">取消报名</button>
+        </form>
+        {% else %}<span class="muted small">—</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">还没有报名记录，去<a class="link" href="{{ url_for('student.activities') }}">活动列表</a>看看吧。</div>
+{% endif %}
+{% endblock %}
