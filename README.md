@@ -4,6 +4,9 @@
 > 设计方式：学生主导设计（UML + 模式决策）→ AI 辅助实现 → 自动化测试验收
 > 核心关注：**需求变化时，设计是否让修改更便宜**
 
+**在线访问（已部署）：<https://campusevent-2.onrender.com/>** —— 打开即登录页，
+演示账号 S001 / S002 / S003（学生）、A001（管理员），无需密码。
+
 ---
 
 ## 1. 项目范围
@@ -177,6 +180,10 @@ UML 图与实验报告均在 `docs/` 下，图示源文件（PlantUML `.puml`）
 分支：`main`；标签：`baseline-v1`（初始验收版本）。两个仓库内容与提交历史一致。
 
 ### 8.2 部署到 Render（免费 Web Service，推荐）
+
+当前线上实例：<https://campusevent-2.onrender.com/>（Render Singapore，Free 实例，
+仓库分支 `main`，构建 `pip install -r requirements.txt`，启动
+`gunicorn -w 2 -b 0.0.0.0:$PORT app:app`）。
 
 1. Render 控制台 → **New → Web Service → Public Git Repository**，填
    `https://github.com/Gy2985/CampusEvent`（或 Gitee 镜像地址），点 **Connect**。
