@@ -213,3 +213,14 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 常驻运行可用 systemd（`ExecStart=/opt/CampusEvent/.venv/bin/gunicorn -w 2 -b 0.0.0.0:8000 app:app`），
 前面套 Nginx 反代即可用 80/443 端口对外提供服务。数据库文件路径可用环境变量
 `DATABASE_PATH` 指定（默认 `data/campus_event.db`），`SECRET_KEY` 同理可用环境变量覆盖。
+
+**一键部署**（Ubuntu 22.04 / Debian 12，root 执行，可重复执行）：
+
+```bash
+curl -fsSL https://gitee.com/gong--yu/CampusEvent/raw/main/deploy/deploy.sh -o deploy.sh
+sudo bash deploy.sh          # 默认从 Gitee 拉代码，用 80 端口
+```
+
+脚本会自动完成：安装 `python3-venv`/`git` → 拉代码到 `/opt/CampusEvent` → 建虚拟环境装依赖
+→ 建库写入演示数据 → 注册 systemd 服务 `campus-event`（开机自启、崩溃自动重启）
+→ 打印公网访问地址。国内轻量应用服务器记得在控制台「防火墙/安全组」放行 80 端口。
