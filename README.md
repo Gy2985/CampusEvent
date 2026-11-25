@@ -138,7 +138,8 @@ CampusEvent/
 
 1. 需求变更（CR）尚未发布，`change-v2` 分支与变更实现按课程安排在收到 CR 后完成，
    影响分析模板见 `docs/07-需求变更影响分析.md`。
-2. 尚未部署到云服务器（实验要求必须部署），本地已验证可运行。
+2. 云端部署见第 8 节：代码已托管于 Gitee/GitHub，按第 8.2 或 8.3 节即可一键上线；
+   本地与 Linux（gunicorn）两种运行方式均已验证。
 3. 未做多用户并发压测；SQLite 为单机写锁模型，适合本实验规模。
 4. 无密码与权限体系，仅按附录 B.1 的固定演示账号区分角色。
 
@@ -161,3 +162,54 @@ CampusEvent/
 
 UML 图与实验报告均在 `docs/` 下，图示源文件（PlantUML `.puml`）与导出的 PNG 一并提交，
 便于评审学生核对设计与代码是否一致。
+
+---
+
+## 8. 代码仓库与云端部署
+
+### 8.1 代码仓库
+
+| 平台 | 地址 | 说明 |
+| --- | --- | --- |
+| Gitee（主仓库） | <https://gitee.com/gong--yu/CampusEvent> | 课程提交用仓库，含全部源码、`docs/` 文档与 `docs/uml/` 图示源文件 |
+| GitHub（镜像） | <https://github.com/Gy2985/CampusEvent> | 与 Gitee 内容一致，供境外 PaaS 平台拉取部署 |
+
+分支：`main`；标签：`baseline-v1`（初始验收版本）。两个仓库内容与提交历史一致。
+
+### 8.2 部署到 Render（免费 Web Service，推荐）
+
+1. Render 控制台 → **New → Web Service → Public Git Repository**，填
+   `https://github.com/Gy2985/CampusEvent`（或 Gitee 镜像地址），点 **Connect**。
+2. 关键配置（仓库里的 `render.yaml` 与此一致，也可直接用 Blueprint 方式部署）：
+
+   | 配置项 | 值 |
+   | --- | --- |
+   | Language | `Python 3` |
+   | Branch | `main` |
+   | Build Command | `pip install -r requirements.txt` |
+   | Start Command | `gunicorn -w 2 -b 0.0.0.0:$PORT app:app` |
+   | Instance Type | `Free` |
+
+3. 部署完成后得到 `https://<服务名>.onrender.com` 形态的公网地址，HTTPS 由平台自动签发。
+4. 应用启动时会自动建库并写入 4 个演示账号（见 2.5 节），无需手工执行 SQL。
+
+> 说明：Render 免费实例在 15 分钟无访问后进入休眠，下次访问需约 1 分钟冷启动；
+> 免费实例的本地磁盘为临时盘，重新部署后 SQLite 数据会回到初始演示数据。
+
+### 8.3 部署到自有云服务器（Linux）
+
+```bash
+# 1) 拉代码（或直接用源码包）
+git clone https://gitee.com/gong--yu/CampusEvent.git /opt/CampusEvent
+cd /opt/CampusEvent
+
+# 2) 建虚拟环境并装依赖（gunicorn 已在 requirements.txt 中）
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+
+# 3) 启动（生产用 gunicorn，多进程；首次启动自动建库）
+./.venv/bin/gunicorn -w 2 -b 0.0.0.0:8000 app:app
+```
+
+常驻运行可用 systemd（`ExecStart=/opt/CampusEvent/.venv/bin/gunicorn -w 2 -b 0.0.0.0:8000 app:app`），
+前面套 Nginx 反代即可用 80/443 端口对外提供服务。数据库文件路径可用环境变量
+`DATABASE_PATH` 指定（默认 `data/campus_event.db`），`SECRET_KEY` 同理可用环境变量覆盖。
