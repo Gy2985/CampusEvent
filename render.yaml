@@ -1,0 +1,18 @@
+# Render 蓝图：把 GitHub 仓库直接建成免费 Web 服务（公网 https 地址）
+# 用法：Render 后台 New > Blueprint，选中本仓库即可按下面的配置自动创建。
+services:
+  - type: web
+    name: campusevent
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT app:app
+    healthCheckPath: /login
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHONUNBUFFERED
+        value: "1"

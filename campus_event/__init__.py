@@ -29,8 +29,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_mapping(
-        SECRET_KEY="campus-event-dev-key",
-        DATABASE=os.path.join(BASE_DIR, "data", "campus_event.db"),
+        # 云端部署时可用环境变量覆盖：SECRET_KEY 由平台生成，DATABASE_PATH 指向可写目录
+        SECRET_KEY=os.environ.get("SECRET_KEY", "campus-event-dev-key"),
+        DATABASE=os.environ.get("DATABASE_PATH")
+        or os.path.join(BASE_DIR, "data", "campus_event.db"),
         SEED_DEMO=True,
         JSON_AS_ASCII=False,
     )
