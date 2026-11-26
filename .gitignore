@@ -6,6 +6,10 @@ __pycache__/
 data/*.db
 data/*.db-journal
 
+# 本地临时目录（不参与提交，v2 起显式忽略）
+_tmp/
+tools/
+
 # 凭据与个人数据（课程要求不得入库）
 .env
 *.log

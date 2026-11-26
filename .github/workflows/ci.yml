@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, change-v2]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: pytest（51 项回归）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: 运行测试
+        env:
+          PYTHONIOENCODING: utf-8
+        run: pytest -q
+
+      - name: 冒烟启动（WSGI 可导入）
+        run: |
+          python - <<'PY'
+          from campus_event import create_app
+          app = create_app({"DATABASE": "/tmp/ci.db", "TESTING": True, "SECRET_KEY": "ci"})
+          client = app.test_client()
+          assert client.get("/login").status_code == 200
+          print("WSGI 冒烟通过")
+          PY

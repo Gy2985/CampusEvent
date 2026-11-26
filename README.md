@@ -1,11 +1,25 @@
 # CampusEvent 校园活动报名与管理系统
 
+![CI](https://github.com/Gy2985/CampusEvent/actions/workflows/ci.yml/badge.svg)
+![Tests](https://img.shields.io/badge/tests-51%20passed-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 > 《软件工程》课程实验二（项目代号 **CampusEvent**）
 > 设计方式：学生主导设计（UML + 模式决策）→ AI 辅助实现 → 自动化测试验收
 > 核心关注：**需求变化时，设计是否让修改更便宜**
 
 **在线访问（已部署）：<https://campusevent-2.onrender.com/>** —— 打开即登录页，
-演示账号 S001 / S002 / S003（学生）、A001（管理员），无需密码。
+演示账号 S001（大二）/ S002（大三）/ S003（大一）、A001（管理员），无需密码。
+
+**版本状态：v2（`change-v2` 分支已合并到 `main`）** —— 在验收基线 `baseline-v1` 之上落地了两张变更单：
+
+| 变更 | 内容 | 落点 | 核心服务改动 |
+| --- | --- | --- | --- |
+| CR-01 | 新增"年级限定直接报名"（仅大二、大三） | 新增 `GradeLimitedDirectPolicy` | **0 行** |
+| CR-02 | 新增 Mock 邮件通知（与站内消息并存） | 新增 `ports/email_sender.py` + `EmailNotificationObserver` | **0 行** |
+
+测试：`pytest -q` → **51 passed**（原 36 项回归全通过 + 15 项变更用例）。
+"优化前 / 优化后"如何区分，见 [`docs/00-版本说明-v2.md`](docs/00-版本说明-v2.md)。
 
 ---
 
@@ -177,7 +191,8 @@ UML 图与实验报告均在 `docs/` 下，图示源文件（PlantUML `.puml`）
 | Gitee（主仓库） | <https://gitee.com/gong--yu/CampusEvent> | 课程提交用仓库，含全部源码、`docs/` 文档与 `docs/uml/` 图示源文件 |
 | GitHub（镜像） | <https://github.com/Gy2985/CampusEvent> | 与 Gitee 内容一致，供境外 PaaS 平台拉取部署 |
 
-分支：`main`；标签：`baseline-v1`（初始验收版本）。两个仓库内容与提交历史一致。
+分支：`main`；标签：`baseline-v1`（初始验收版本）、`change-v2`（CR-01/CR-02 落地版本）。
+两个仓库内容与提交历史一致。
 
 ### 8.2 部署到 Render（免费 Web Service，推荐）
 
@@ -231,3 +246,29 @@ sudo bash deploy.sh          # 默认从 Gitee 拉代码，用 80 端口
 脚本会自动完成：安装 `python3-venv`/`git` → 拉代码到 `/opt/CampusEvent` → 建虚拟环境装依赖
 → 建库写入演示数据 → 注册 systemd 服务 `campus-event`（开机自启、崩溃自动重启）
 → 打印公网访问地址。国内轻量应用服务器记得在控制台「防火墙/安全组」放行 80 端口。
+
+---
+
+## 9. 版本对照与文档索引（v2）
+
+**规则：v1 文件保持原名不动，v2 文件统一带 `-v2`。** 教师可并排对照"优化前 / 优化后"。
+
+| 主题 | v1（优化前，保留） | v2（优化后，新增） |
+| --- | --- | --- |
+| 版本说明 | — | [`docs/00-版本说明-v2.md`](docs/00-版本说明-v2.md) |
+| 变更影响分析 | `docs/06-需求变更影响分析.md` | [`docs/10-需求变更影响分析-CR01-CR02-v2.md`](docs/10-需求变更影响分析-CR01-CR02-v2.md) |
+| 回归测试表 | `docs/07-回归测试表.md`（36 项） | [`docs/07-回归测试表-v2.md`](docs/07-回归测试表-v2.md)（51 项） |
+| 设计模式决策 | `docs/05-设计模式决策报告.md` | [`docs/12-设计模式决策报告-v2.md`](docs/12-设计模式决策报告-v2.md) |
+| 实验报告 | `docs/09-实验二报告.docx` | [`docs/09-实验二报告-v2.docx`](docs/09-实验二报告-v2.docx) |
+| 类图 | `docs/uml/class-diagram.puml` | [`docs/uml/class-diagram-v2.puml`](docs/uml/class-diagram-v2.puml) |
+| 变更前后代码对照 | — | [`docs/11-变更实施与代码对照-v2.md`](docs/11-变更实施与代码对照-v2.md) |
+| 变更记录 | — | [`CHANGELOG.md`](CHANGELOG.md) |
+
+复现"变更前 / 变更后"的代码差异：
+
+```bash
+git diff --stat baseline-v1..change-v2                                  # 全部差异
+git diff baseline-v1..change-v2 -- campus_event tests                   # 只看代码与测试
+git diff --stat baseline-v1..change-v2 -- campus_event/services/registration_service.py   # 输出为空 = 核心服务未改
+```
+
