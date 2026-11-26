@@ -1,0 +1,230 @@
+@startuml
+' CampusEvent 类图 v2（change-v2：CR-01 年级限定 + CR-02 模拟邮件）
+' 与 docs/uml/class-diagram.puml（v1）的差异处用 <<v2>> 标注
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+package "domain（领域层，不依赖 Flask/SQLite）" {
+  enum Role {
+    student
+    admin
+  }
+  enum RegistrationStatus {
+    PENDING 待审核
+    APPROVED 已通过
+    REJECTED 已拒绝
+    CANCELLED 已取消
+  }
+  enum PolicyType {
+    DIRECT 直接报名
+    APPROVAL 管理员审核
+    GRADE_LIMITED 年级限定 <<v2>>
+  }
+
+  class Student {
+    - student_id : String
+    - name : String
+    - role : Role
+    - grade : int <<v2>>
+    + is_admin() : bool
+    + grade_label() : String <<v2>>
+  }
+
+  class Activity {
+    - activity_id : int
+    - title : String
+    - category : String
+    - start_at : String
+    - location : String
+    - capacity : int
+    - policy_type : PolicyType
+    + start_time() : DateTime
+  }
+
+  class Registration {
+    - registration_id : int
+    - activity_id : int
+    - student_id : String
+    - status : RegistrationStatus
+    - created_at : String
+    - updated_at : String
+  }
+
+  class Message {
+    - message_id : int
+    - student_id : String
+    - activity_id : int
+    - content : String
+    - created_at : String
+    - is_read : bool
+  }
+
+  class ActivityStats {
+    - capacity : int
+    - approved_count : int
+    - pending_count : int
+    + remaining() : int
+  }
+}
+
+package "policies（策略模式）" {
+  abstract class RegistrationPolicy {
+    + policy_type : PolicyType
+    + requires_immediate_capacity_check : bool
+    + decide(ctx : RegistrationContext) : RegistrationDecision
+  }
+  class DirectRegistrationPolicy
+  class ApprovalRegistrationPolicy
+  class GradeLimitedDirectPolicy <<v2>> {
+    + ALLOWED_GRADES : {2,3}
+    + decide(ctx) : RegistrationDecision
+  }
+  class PolicyRegistry {
+    - _policies : Map
+    + register(policy)
+    + get(policy_type) : RegistrationPolicy
+  }
+  class RegistrationContext {
+    + activity : Activity
+    + student : Student
+    + approved_count : int
+    + is_full() : bool
+  }
+  class RegistrationDecision {
+    + status : RegistrationStatus
+    + student_message : String
+  }
+}
+
+package "events + observers（观察者模式，双渠道）" {
+  enum RegistrationEventType {
+    SUBMITTED
+    APPROVED
+    REJECTED
+    CANCELLED
+  }
+  class RegistrationEvent {
+    + event_type : RegistrationEventType
+    + registration_id : int
+    + student_id : String
+    + notification_text : String
+    + dedupe_key() : String
+  }
+  class EventBus {
+    - _handlers : List
+    + subscribe(handler)
+    + publish(event)
+  }
+  class NotificationObserver {
+    + handle(event)
+    - _record_failure(event, exc)
+  }
+  class EmailNotificationObserver <<v2>> {
+    + handle(event)
+    - _should_send(event, status) : bool
+    - _compose(event, status) : (subject, body)
+    - _finish(key, status, error)
+  }
+}
+
+package "ports（端口—适配器）" {
+  interface EmailSender <<v2>> {
+    + send(message : EmailMessage)
+  }
+  class MockEmailSender <<v2>> {
+    + fail_recipients : Set
+    + always_fail : bool
+    + send(message)
+  }
+  class EmailMessage <<v2>> {
+    + to_addr : String
+    + subject : String
+    + body : String
+  }
+}
+
+package "services（业务服务）" {
+  class RegistrationService {
+    ' v2 中本类的方法体与依赖关系一行未改
+    + register(activity_id, student_id) : Registration
+    + cancel(registration_id, student_id) : Registration
+    + approve(registration_id, operator_id) : Registration
+    + reject(registration_id, operator_id, reason) : Registration
+    - _publish(...)
+  }
+  class ActivityService {
+    + create(...) : Activity
+    + update(...) : Activity
+    + delete(operator_id, activity_id)
+  }
+}
+
+package "repositories（仓储）" {
+  class Database {
+    + transaction()
+    + connection()
+    + upgrade() <<v2>>
+  }
+  class StudentRepository
+  class ActivityRepository
+  class RegistrationRepository {
+    + find_active(activity_id, student_id)
+    + count_by_status(activity_id, status)
+  }
+  class MessageRepository {
+    + add(..., dedupe_key) : bool
+  }
+  class FailureRepository
+  class EmailRepository <<v2>> {
+    + reserve(...) : bool
+    + mark_result(key, status, error)
+  }
+  note bottom of FailureRepository
+    通知失败留痕表 notification_failures
+  end note
+  note bottom of EmailRepository
+    模拟发件箱表 email_outbox（dedupe_key 唯一）
+  end note
+}
+
+Student "1" -- "0..*" Registration : 报名
+Activity "1" -- "0..*" Registration : 被报名
+Activity "1" -- "1" ActivityStats : 统计
+Student "1" -- "0..*" Message : 接收
+Student "1" -- "0..*" EmailMessage : 收件 <<v2>>
+
+RegistrationPolicy <|-- DirectRegistrationPolicy
+RegistrationPolicy <|-- ApprovalRegistrationPolicy
+RegistrationPolicy <|-- GradeLimitedDirectPolicy <<v2>>
+PolicyRegistry o-- RegistrationPolicy : 持有
+RegistrationPolicy ..> RegistrationDecision : 产出
+RegistrationContext ..> Activity
+RegistrationContext ..> Student
+RegistrationDecision ..> RegistrationStatus
+
+RegistrationService --> PolicyRegistry : 取策略
+RegistrationService --> EventBus : 发布事件
+RegistrationService --> Database : 事务
+RegistrationService ..> RegistrationRepository
+RegistrationService ..> ActivityRepository
+RegistrationService --> RegistrationPolicy : 依赖抽象
+
+EventBus o-- NotificationObserver : 订阅（渠道1）
+EventBus o-- EmailNotificationObserver : 订阅（渠道2）<<v2>>
+NotificationObserver --> MessageRepository
+NotificationObserver --> FailureRepository
+
+EmailNotificationObserver --> EmailSender : 依赖端口 <<v2>>
+EmailNotificationObserver --> EmailRepository : 幂等占位/回写 <<v2>>
+EmailSender <|-- MockEmailSender
+MockEmailSender ..> EmailMessage
+
+RegistrationEvent --> RegistrationEventType
+EventBus ..> RegistrationEvent
+
+RegistrationRepository ..> Registration
+ActivityService --> ActivityRepository
+ActivityService --> Database
+@enduml
