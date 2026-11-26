@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <h1>{{ '新建活动' if mode == 'new' else '编辑活动' }}</h1>
-  <p class="muted">报名方式决定后续报名流程：直接报名自动通过，审核型报名先进入待审核。</p>
+  <p class="muted">报名方式决定后续报名流程：直接报名自动通过，审核型报名先进入待审核，年级限定报名仅允许大二、大三学生自动通过。</p>
 </div>
 
 {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
@@ -35,6 +35,7 @@
     <select name="policy_type">
       <option value="DIRECT" {% if form.get('policy_type') == 'DIRECT' %}selected{% endif %}>直接报名（自动通过）</option>
       <option value="APPROVAL" {% if form.get('policy_type') == 'APPROVAL' %}selected{% endif %}>管理员审核（先待审核）</option>
+      <option value="GRADE_LIMITED" {% if form.get('policy_type') == 'GRADE_LIMITED' %}selected{% endif %}>年级限定报名（仅大二、大三）</option>
     </select>
   </label>
 

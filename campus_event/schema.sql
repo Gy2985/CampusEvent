@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS students (
     student_id TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
     role       TEXT NOT NULL DEFAULT 'student'
-               CHECK (role IN ('student', 'admin'))
+               CHECK (role IN ('student', 'admin')),
+    -- v2 / CR-01：学生年级 1–4（管理员不参与报名，允许为 NULL）
+    grade      INTEGER CHECK (grade BETWEEN 1 AND 4)
 );
 
 CREATE TABLE IF NOT EXISTS activities (
@@ -17,7 +19,9 @@ CREATE TABLE IF NOT EXISTS activities (
     start_at     TEXT    NOT NULL,
     location     TEXT    NOT NULL,
     capacity     INTEGER NOT NULL CHECK (capacity > 0),
-    policy_type  TEXT    NOT NULL CHECK (policy_type IN ('DIRECT', 'APPROVAL')),
+    -- v2 / CR-01：报名方式扩展出 'GRADE_LIMITED'（年级限定直接报名）
+    policy_type  TEXT    NOT NULL
+                 CHECK (policy_type IN ('DIRECT', 'APPROVAL', 'GRADE_LIMITED')),
     created_at   TEXT    NOT NULL,
     updated_at   TEXT    NOT NULL
 );
@@ -60,4 +64,18 @@ CREATE TABLE IF NOT EXISTS notification_failures (
     message     TEXT,
     error       TEXT    NOT NULL,
     created_at  TEXT    NOT NULL
+);
+
+-- v2 / CR-02：模拟邮件发件箱
+-- 先占位（QUEUED）再完结（SENT / FAILED），dedupe_key 唯一即可保证“同一业务事件只发一封”
+CREATE TABLE IF NOT EXISTS email_outbox (
+    email_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    dedupe_key TEXT    NOT NULL UNIQUE,
+    to_addr    TEXT    NOT NULL,
+    subject    TEXT    NOT NULL,
+    body       TEXT    NOT NULL,
+    status     TEXT    NOT NULL DEFAULT 'QUEUED'
+                       CHECK (status IN ('QUEUED', 'SENT', 'FAILED')),
+    error      TEXT,
+    created_at TEXT    NOT NULL
 );

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}邮件发件箱 · CampusEvent{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>模拟邮件发件箱（v2 / CR-02）</h1>
+  <p class="muted">站内消息之外的第二条通知渠道。发送失败只在这里留下状态与错误，不会回滚已通过的报名。</p>
+</div>
+
+<div class="stat-row">
+  <div class="stat"><span class="stat-num">{{ sent_count }}</span><span class="stat-label">已发送</span></div>
+  <div class="stat"><span class="stat-num">{{ failed_count }}</span><span class="stat-label">发送失败</span></div>
+  <div class="stat"><span class="stat-num">{{ rows|length }}</span><span class="stat-label">总记录</span></div>
+</div>
+
+{% if rows %}
+<table class="table">
+  <thead>
+    <tr><th>#</th><th>收件人</th><th>主题</th><th>状态</th><th>幂等键</th><th>错误</th><th>时间</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.email_id }}</td>
+      <td>{{ row.to_addr }}</td>
+      <td class="wrap">{{ row.subject }}</td>
+      <td><span class="badge {{ 'ok' if row.status == 'SENT' else 'full' }}">{{ row.status_label }}</span></td>
+      <td class="muted small">{{ row.dedupe_key }}</td>
+      <td class="wrap">{{ row.error or '—' }}</td>
+      <td>{{ row.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">还没有邮件记录。去报名一个活动，就会在这里出现一条。</div>
+{% endif %}
+{% endblock %}

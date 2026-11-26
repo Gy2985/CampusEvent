@@ -18,7 +18,7 @@
   <article class="card">
     <div class="card-top">
       <span class="tag">{{ activity.category }}</span>
-      <span class="tag {{ 'tag-approval' if activity.policy_type == 'APPROVAL' else 'tag-direct' }}">
+      <span class="tag {{ 'tag-approval' if activity.policy_type == 'APPROVAL' else ('tag-grade' if activity.policy_type == 'GRADE_LIMITED' else 'tag-direct') }}">
         {{ activity.policy_label }}
       </span>
       {% if activity.started %}<span class="tag tag-closed">已开始</span>{% endif %}

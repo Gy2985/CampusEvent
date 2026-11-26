@@ -56,3 +56,9 @@ class InvalidStateTransitionError(BusinessError):
     """报名状态不允许当前操作。"""
 
     code = "INVALID_STATE_TRANSITION"
+
+
+class GradeRestrictedError(BusinessError):
+    """v2（CR-01）：年级不满足活动的资格限定。"""
+
+    code = "GRADE_RESTRICTED"

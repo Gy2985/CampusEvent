@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from ..domain.entities import PolicyType, RegistrationStatus
-from ..domain.errors import ValidationError
+from ..domain.errors import GradeRestrictedError, ValidationError
 from .base import RegistrationContext, RegistrationDecision, RegistrationPolicy
 
 
@@ -40,6 +40,38 @@ class ApprovalRegistrationPolicy(RegistrationPolicy):
         )
 
 
+class GradeLimitedDirectPolicy(RegistrationPolicy):
+    """v2 / CR-01：年级限定直接报名。
+
+    规则本身：只有 ``grade ∈ {2, 3}``（大二、大三）的学生可以报名，其余年级收到明确提示。
+    名额上限、活动开始时间、重复报名这三条公共约束仍由 ``RegistrationService`` 统一执行，
+    本策略**只负责资格判定**，以确保“一条会变的规则不会渗进核心流程”。
+
+    资格不符时抛出 :class:`GradeRestrictedError`（而不是返回 ``REJECTED`` 状态）：
+    报名事务回滚，不产生任何报名记录，避免与“重复报名”规则打架、也避免污染名额与名单统计。
+    """
+
+    policy_type = PolicyType.GRADE_LIMITED
+    requires_immediate_capacity_check = True
+
+    #: 允许报名的年级集合（教师材料 CR-01 明确为 2、3）
+    ALLOWED_GRADES: frozenset[int] = frozenset({2, 3})
+
+    def decide(self, context: RegistrationContext) -> RegistrationDecision:
+        grade = context.student.grade
+        if grade not in self.ALLOWED_GRADES:
+            current = context.student.grade_label if grade is not None else "未登记年级"
+            raise GradeRestrictedError(
+                f"该活动仅限大二、大三学生报名，当前账号为{current}，无法报名。"
+            )
+        return RegistrationDecision(
+            status=RegistrationStatus.APPROVED,
+            student_message=(
+                f"报名成功：{context.activity.title}（年级限定直接报名，已自动通过）。"
+            ),
+        )
+
+
 class PolicyRegistry:
     """策略注册表：把活动上的 policy_type 映射为策略对象。"""
 
@@ -65,5 +97,11 @@ class PolicyRegistry:
 
 
 def build_default_registry() -> PolicyRegistry:
-    """初始版本的策略装配。"""
-    return PolicyRegistry([DirectRegistrationPolicy(), ApprovalRegistrationPolicy()])
+    """策略装配（v2 增加年级限定策略）。"""
+    return PolicyRegistry(
+        [
+            DirectRegistrationPolicy(),
+            ApprovalRegistrationPolicy(),
+            GradeLimitedDirectPolicy(),
+        ]
+    )

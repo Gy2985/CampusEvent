@@ -180,6 +180,26 @@ def failure_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM notification_failures ORDER BY failure_id DESC").fetchall()
 
 
+def email_rows(conn: sqlite3.Connection) -> list[dict]:
+    """管理端邮件发件箱视图（v2 / CR-02）。"""
+    rows = conn.execute("SELECT * FROM email_outbox ORDER BY email_id DESC").fetchall()
+    return [
+        {
+            "email_id": row["email_id"],
+            "to_addr": row["to_addr"],
+            "subject": row["subject"],
+            "status": row["status"],
+            "status_label": {"QUEUED": "待发送", "SENT": "已发送", "FAILED": "发送失败"}.get(
+                row["status"], row["status"]
+            ),
+            "error": row["error"],
+            "dedupe_key": row["dedupe_key"],
+            "created_at": display(row["created_at"]),
+        }
+        for row in rows
+    ]
+
+
 def _my_status(
     conn: sqlite3.Connection, activity_id: int, student_id: str
 ) -> RegistrationStatus | None:
@@ -230,6 +250,8 @@ def _activity_dict(row: sqlite3.Row) -> dict:
         "capacity": capacity,
         "policy_type": policy.value,
         "policy_label": policy.label,
+        "policy_hint": policy.hint,
+        "grade_limited": policy is PolicyType.GRADE_LIMITED,
         "approved_count": approved,
         "pending_count": pending,
         "remaining": max(capacity - approved, 0),

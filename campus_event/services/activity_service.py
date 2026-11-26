@@ -137,7 +137,7 @@ class ActivityService:
         try:
             policy = PolicyType(policy_type)
         except ValueError:
-            raise ValidationError("报名方式只能是“直接报名”或“管理员审核”。")
+            raise ValidationError("报名方式只能是“直接报名”“管理员审核”或“年级限定报名”。")
 
         return {
             "title": title,

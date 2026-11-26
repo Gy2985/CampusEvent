@@ -16,7 +16,7 @@
       {{ '管理员' if user.is_admin else '学生' }}
     </div>
     <div class="account-name">{{ user.name }}</div>
-    <div class="muted small">账号 {{ user.student_id }}</div>
+    <div class="muted small">账号 {{ user.student_id }}{% if not user.is_admin %} · {{ user.grade_label }}{% endif %}</div>
     <button type="submit">以此身份进入</button>
   </form>
   {% endfor %}

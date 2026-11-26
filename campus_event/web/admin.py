@@ -149,4 +149,17 @@ def failures():
     return render_template("admin_failures.html", rows=rows)
 
 
+@bp.route("/emails")
+@admin_required
+def emails():
+    """v2 / CR-02：模拟邮件发件箱（含失败记录，便于验收"失败可查"）。"""
+    with get_db().connection() as conn:
+        rows = queries.email_rows(conn)
+    sent = sum(1 for r in rows if r["status"] == "SENT")
+    failed = sum(1 for r in rows if r["status"] == "FAILED")
+    return render_template(
+        "admin_emails.html", rows=rows, sent_count=sent, failed_count=failed
+    )
+
+
 __all__ = ["bp", "PolicyType"]

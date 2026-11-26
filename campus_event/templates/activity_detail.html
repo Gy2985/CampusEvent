@@ -13,7 +13,7 @@
       <dt>开始时间</dt><dd>{{ activity.start_display }}</dd>
       <dt>活动地点</dt><dd>{{ activity.location }}</dd>
       <dt>报名方式</dt>
-      <dd>{{ activity.policy_label }}{% if activity.policy_type == 'DIRECT' %}（提交后自动通过）{% else %}（提交后需管理员审核）{% endif %}</dd>
+      <dd>{{ activity.policy_label }}（{{ activity.policy_hint }}）</dd>
       <dt>人数上限</dt><dd>{{ activity.capacity }} 人</dd>
     </dl>
   </section>

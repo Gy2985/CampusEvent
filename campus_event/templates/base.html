@@ -21,6 +21,7 @@
         <a href="{{ url_for('admin.reviews') }}">待审核审批</a>
         <a href="{{ url_for('student.activities') }}">学生视角</a>
         <a href="{{ url_for('admin.failures') }}">通知留痕</a>
+        <a href="{{ url_for('admin.emails') }}">邮件发件箱</a>
       {% else %}
         <a href="{{ url_for('student.activities') }}">活动列表</a>
         <a href="{{ url_for('student.my_registrations') }}">我的报名</a>
@@ -28,7 +29,7 @@
       <a href="{{ url_for('student.messages') }}">站内消息{% if unread_count %}<span class="dot">{{ unread_count }}</span>{% endif %}</a>
     </nav>
     <div class="userbox">
-      <span class="chip">{{ current_user.name }}</span>
+      <span class="chip">{{ current_user.name }}{% if not current_user.is_admin %} · {{ current_user.grade_label }}{% endif %}</span>
       <a class="link" href="{{ url_for('auth.logout') }}">退出</a>
     </div>
     {% endif %}

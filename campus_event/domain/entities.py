@@ -38,14 +38,33 @@ _STATUS_LABELS = {
 
 
 class PolicyType(str, Enum):
-    """活动报名方式。"""
+    """活动报名方式（v2 新增年级限定直接报名）。"""
 
     DIRECT = "DIRECT"
     APPROVAL = "APPROVAL"
+    GRADE_LIMITED = "GRADE_LIMITED"
 
     @property
     def label(self) -> str:
-        return "直接报名" if self is PolicyType.DIRECT else "管理员审核"
+        return _POLICY_LABELS[self]
+
+    @property
+    def hint(self) -> str:
+        """给页面用的一句话说明。"""
+        return _POLICY_HINTS[self]
+
+
+_POLICY_LABELS = {
+    PolicyType.DIRECT: "直接报名",
+    PolicyType.APPROVAL: "管理员审核",
+    PolicyType.GRADE_LIMITED: "年级限定报名",
+}
+
+_POLICY_HINTS = {
+    PolicyType.DIRECT: "提交后自动通过",
+    PolicyType.APPROVAL: "提交后需管理员审核",
+    PolicyType.GRADE_LIMITED: "仅限大二、大三学生，提交后自动通过",
+}
 
 
 class Role(str, Enum):
@@ -58,10 +77,20 @@ class Student:
     student_id: str
     name: str
     role: Role
+    grade: int | None = None  # v2：1–4，管理员为 None
 
     @property
     def is_admin(self) -> bool:
         return self.role is Role.ADMIN
+
+    @property
+    def grade_label(self) -> str:
+        if self.grade is None:
+            return "—"
+        return _GRADE_LABELS.get(self.grade, f"年级{self.grade}")
+
+
+_GRADE_LABELS = {1: "大一", 2: "大二", 3: "大三", 4: "大四"}
 
 
 @dataclass(frozen=True)

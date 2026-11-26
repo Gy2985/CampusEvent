@@ -17,8 +17,10 @@ from flask import Flask
 
 from .db import Database
 from .events.event_bus import EventBus
+from .observers.email_notification_observer import EmailNotificationObserver
 from .observers.notification_observer import NotificationObserver
 from .policies.implementations import build_default_registry
+from .ports.email_sender import MockEmailSender
 from .services.activity_service import ActivityService
 from .services.registration_service import RegistrationService
 from .web import register_blueprints
@@ -49,11 +51,16 @@ def create_app(config: dict | None = None) -> Flask:
 
     registry = build_default_registry()
     event_bus = EventBus()
+    # 渠道 1：站内消息（baseline-v1 已有）
     event_bus.subscribe(NotificationObserver(db).handle)
+    # 渠道 2：模拟邮件（v2 / CR-02；可通过 EMAIL_SENDER 配置替换实现或注入故障）
+    email_sender = app.config.get("EMAIL_SENDER") or MockEmailSender()
+    event_bus.subscribe(EmailNotificationObserver(db, email_sender).handle)
 
     app.extensions["db"] = db
     app.extensions["policies"] = registry
     app.extensions["event_bus"] = event_bus
+    app.extensions["email_sender"] = email_sender
     app.extensions["registration_service"] = RegistrationService(db, registry, event_bus)
     app.extensions["activity_service"] = ActivityService(db)
 
